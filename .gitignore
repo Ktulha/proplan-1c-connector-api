@@ -1,2 +1,3 @@
-# Test coverage
-.coverage
+# Python bytecode and caches
+__pycache__/
+*.pyc

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 import os
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
