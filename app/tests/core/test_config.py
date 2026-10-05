@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import base64
 import os
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from hypothesis import example, given, settings
@@ -71,7 +73,8 @@ def test_load_config_reads_all_fields() -> None:
     assert isinstance(cfg, Config)
     assert cfg.env == "production"
     assert cfg.database_url == "postgresql+psycopg://u:p@h/db"
-    assert len(cfg.encryption_key) == 32 and isinstance(cfg.encryption_key, bytes)
+    assert isinstance(cfg.encryption_key, bytes)
+    assert len(cfg.encryption_key) == 32
     assert cfg.log_level == "WARNING"  # нормализация регистра
     assert cfg.api_prefix == "/api/v2"
     assert cfg.admin_url == "/panel"
@@ -91,26 +94,24 @@ def test_defaults_when_optional_missing() -> None:
     assert cfg.allowed_origins == []
 
 
-def test_dotenv_file_is_loaded(tmp_path: object) -> None:
+def test_dotenv_file_is_loaded(tmp_path: Path) -> None:
     """Значения из .env подхватываются и не перекрывают реальные env-переменные."""
-    from pathlib import Path
-
-    directory = Path(tmp_path)
+    directory = tmp_path
     dotenv = directory / ".env"
     dotenv.write_text("APP_SECRET=from-dotenv\nMAX_WORKERS=9\n", encoding="utf-8")
     cfg = load_config(
-        env={"APP_SECRET": "from-real-env", **{k: v for k, v in make_env().items()}},
+        env={"APP_SECRET": "from-real-env", **make_env()},
         dotenv_path=directory,
     )
-    assert cfg.app_secret == "from-real-env"  # os.environ приоритетнее .env
-    assert cfg.max_workers == 9  # значение из .env применено
+    # os.environ приоритетнее .env
+    assert cfg.app_secret == "from-real-env"
+    # значение из .env применено
+    assert cfg.max_workers == 9
 
 
-def test_secret_file_support(tmp_path: object) -> None:
+def test_secret_file_support(tmp_path: Path) -> None:
     """ENCRYPTION_KEY_FILE читает ключ из файла (Docker secrets)."""
-    from pathlib import Path
-
-    directory = Path(tmp_path)
+    directory = tmp_path
     keyfile = directory / "enc.key"
     keyfile.write_bytes(base64.b64encode(b"k" * 32))
     cfg = load_config(

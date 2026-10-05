@@ -25,7 +25,7 @@ from core.exceptions import ValidationError
 
 __all__ = ["Base", "get_session", "get_transaction", "init_db", "make_engine"]
 
-#: Общий базовый класс декларативных моделей всего приложения.
+
 class Base(DeclarativeBase):
     """Declarative-база для ORM-моделей Repo 1.
 
@@ -67,7 +67,7 @@ def make_engine(
         )
     try:
         parsed = sa.make_url(database_url)
-    except Exception as exc:  # noqa: BLE001 - конвертируем в доменную ошибку
+    except Exception as exc:  # noqa: BLE001 - конвертируем любую ошибку DSN в доменную
         raise ValidationError(
             "Некорректный DATABASE_URL",
             details={"error": str(exc)},
