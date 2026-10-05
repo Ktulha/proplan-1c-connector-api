@@ -8,6 +8,8 @@ JSON на SQLite), поэтому интеграционные сценарии 
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
@@ -29,7 +31,7 @@ metadata_table = sa.Table(
 
 
 @pytest.fixture
-def engine() -> sa.Engine:
+def engine() -> Iterator[sa.Engine]:
     """In-memory SQLite engine со схемой из Base.metadata."""
     eng = sa.create_engine(
         "sqlite:///:memory:",
@@ -100,12 +102,11 @@ def test_get_session_commits_on_success(sessionmaker_: sa.orm.sessionmaker[sa.or
 def test_get_session_rolls_back_on_exception(sessionmaker_: sa.orm.sessionmaker[sa.orm.Session]) -> None:
     """Исключение внутри контекста откатывает транзакцию."""
     now = dt.datetime.now(dt.UTC)
-    with pytest.raises(RuntimeError):
-        with get_session(sessionmaker_) as session:
-            session.execute(
-                metadata_table.insert().values(guid="bad", payload={}, synced_at=now)
-            )
-            raise RuntimeError("boom")
+    with pytest.raises(RuntimeError), get_session(sessionmaker_) as session:
+        session.execute(
+            metadata_table.insert().values(guid="bad", payload={}, synced_at=now)
+        )
+        raise RuntimeError("boom")
     with get_session(sessionmaker_) as session:
         count = session.execute(sa.select(sa.func.count()).select_from(metadata_table)).scalar()
     assert count == 0
@@ -124,11 +125,10 @@ def test_upsert_soft_delete_flow(sessionmaker_: sa.orm.sessionmaker[sa.orm.Sessi
         session.execute(
             metadata_table.insert().values(guid="dup", payload={"v": 1}, synced_at=now)
         )
-    with get_session(sessionmaker_) as session:
-        with pytest.raises(IntegrityError):
-            session.execute(
-                metadata_table.insert().values(guid="dup", payload={"v": 2}, synced_at=now)
-            )
+    with get_session(sessionmaker_) as session, pytest.raises(IntegrityError):
+        session.execute(
+            metadata_table.insert().values(guid="dup", payload={"v": 2}, synced_at=now)
+        )
     # soft delete помечает запись, не удаляя строку
     with get_session(sessionmaker_) as session:
         session.execute(

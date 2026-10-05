@@ -99,7 +99,7 @@ class ExternalAPIError(AppError):
     default_code: str = "EXTERNAL_API_ERROR"
     default_status_code: int = 502
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 - плоский конструктор без dataclass-обертки
         self,
         message: str | None = None,
         *,
