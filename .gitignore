@@ -1,4 +1,10 @@
-node_modules/
+# Compiled and build artifacts
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.localnode_modules/
 .next/
 dist/
 build/
